@@ -1,0 +1,50 @@
+# === Build directories ===
+build/
+cmake-build-*/
+
+# === CMake files ===
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+compile_commands.json
+
+# === Compiled objects and binaries ===
+*.o
+*.obj
+*.so
+*.a
+*.lib
+*.dll
+*.exe
+*.out
+
+# === Coverage and profiling ===
+*.gcda
+*.gcno
+*.gcov
+coverage/
+*.profraw
+*.profdata
+
+# === Logs and temporary files ===
+*.log
+*.tmp
+*.swp
+*.DS_Store
+*.bak
+*.~*
+
+# === IDEs and editors ===
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# === Snap and flatpak cache (e.g. for firefox) ===
+.snap/
+
+# === System-specific ===
+Thumbs.db
+desktop.ini
+*.token
