@@ -24,7 +24,8 @@ shopt -s extdebug # necessary for the DEBUG trap to carry into functions
 # echo "[INFO](END) Start Debug build!"
 
 BUILD_DIR=./build
-cmake -DCODE_COVERAGE=ON ${BUILD_DIR}
+# mkdir ${BUILD_DIR}
+cmake -DCODE_COVERAGE=ON -B ${BUILD_DIR}
 cd ${BUILD_DIR} || exit
 rm -rf CMakeFiles/ *.gcda *.gcno *.gcov
 cmake --build .
