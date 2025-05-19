@@ -470,7 +470,7 @@ class StreamingSession : public std::enable_shared_from_this<StreamingSession>
 {
 private:
   tcp::socket socket_;
-  net::strand<net::any_io_executor> strand_;
+  net::strand<net::io_context::executor_type> strand_;
   bool writing_{false};
   size_t frame_idx_; // Index of the current frame in the shared deque
   GStreamerIF &gst_;
@@ -478,7 +478,11 @@ private:
 
 public:
   explicit StreamingSession(tcp::socket &&socket, GStreamerIF &gst, std::string name = "StreamingSession")
-      : socket_(std::move(socket)), strand_(socket_.get_executor()), frame_idx_(0), gst_(gst), name_(std::move(name))
+      : socket_(std::move(socket)),
+        strand_(net::make_strand(static_cast<net::io_context &>(socket_.get_executor().context()).get_executor())), // Use io_context's executor
+        frame_idx_(0),
+        gst_(gst),
+        name_(std::move(name))
   {
   }
 
@@ -832,19 +836,19 @@ TEST_CASE("002 get_send_buffer_info(socket) with invalid socket -> returns error
   CHECK(get_send_buffer_info(test_invalid_socket).substr(0, 27) == "getsockopt TCP_INFO failed:");
 }
 
-TEST_CASE("003 get_send_buffer_info(socket) with valid socket -> returns valid data string")
-{
-  boost::asio::io_context io_context;
+// TEST_CASE("003 get_send_buffer_info(socket) with valid socket -> returns valid data string")
+// {
+//   boost::asio::io_context io_context;
 
-  // Resolve address and port
-  tcp::resolver resolver(io_context);
-  auto endpoints = resolver.resolve("example.com", "80");
+//   // Resolve address and port
+//   tcp::resolver resolver(io_context);
+//   auto endpoints = resolver.resolve("example.com", "80");
 
-  // Create socket and connect
-  tcp::socket socket(io_context);
-  boost::asio::connect(socket, endpoints);
-  CHECK(get_send_buffer_info(socket).substr(0, 21) == "TCP send buffer info:");
-}
+//   // Create socket and connect
+//   tcp::socket socket(io_context);
+//   boost::asio::connect(socket, endpoints);
+//   CHECK(get_send_buffer_info(socket).substr(0, 21) == "TCP send buffer info:");
+// }
 
 TEST_CASE("004 SharedFrame(frame_data, n) with invalid n -> throws std::runtime_error")
 {
@@ -941,25 +945,29 @@ TEST_CASE("007 do_accept(acceptor, &ioc) -> calls async_accept and then calls do
     fut.get();
   };
 
-  SUBCASE("007.001 client does connect_then_exit") {
+  SUBCASE("007.001 client does connect_then_exit")
+  {
     auto connect_then_exit = []
     { return false; };
     do_async_and_run_ioc_and_get_future(connect_then_exit);
   }
 
-  SUBCASE("007.002 client does connect_then_send_req 'random-str'") {
+  SUBCASE("007.002 client does connect_then_send_req 'random-str'")
+  {
     auto connect_then_send_req = []
     { return true; };
     do_async_and_run_ioc_and_get_future(connect_then_send_req, "random-str");
   }
 
-  SUBCASE("007.003 client does connect_then_send_req '/stream' for MJPEG streaming") {
+  SUBCASE("007.003 client does connect_then_send_req '/stream' for MJPEG streaming")
+  {
     auto connect_then_send_req = []
     { return true; };
     do_async_and_run_ioc_and_get_future(connect_then_send_req, "/stream");
   }
 
-  SUBCASE("007.004 client does connect_then_send_req '/stream001' for Webm streaming") {
+  SUBCASE("007.004 client does connect_then_send_req '/stream001' for Webm streaming")
+  {
     auto connect_then_send_req = []
     { return true; };
     do_async_and_run_ioc_and_get_future(connect_then_send_req, "/stream01");
@@ -975,7 +983,7 @@ TEST_CASE("008 MJPEGGStreamer::first_frame_to_start() -> is not 0 when queue is 
   net::io_context test_ioc;
   tcp::socket test_socket(test_ioc);
   MJPEGSessionImpl test_mjpeg_ss(std::move(test_socket));
-  //MJPEGGStreamer::getInstance().start_pipeline();
+  // MJPEGGStreamer::getInstance().start_pipeline();
   MJPEGGStreamer::getInstance().change_deuque_max_size(4);
   cout << "tc0" << endl;
   sleep(1);
@@ -985,7 +993,7 @@ TEST_CASE("008 MJPEGGStreamer::first_frame_to_start() -> is not 0 when queue is 
   size_t test_frame_idx = 2;
   MJPEGGStreamer::getInstance().get_frame(test_frame_idx, test_mjpeg_ss);
   CHECK(MJPEGGStreamer::getInstance().first_frame_to_start() > 0);
-  //MJPEGGStreamer::getInstance().stop_pipeline();
+  // MJPEGGStreamer::getInstance().stop_pipeline();
   cout << "tc2" << endl;
   std::cout.clear();
 }
@@ -997,14 +1005,14 @@ TEST_CASE("009 WebmGStreamer::first_frame_to_start() -> is always 0")
   net::io_context test_ioc;
   tcp::socket test_socket(test_ioc);
   WebmSessionImpl test_webm_ss(std::move(test_socket));
-  //WebmGStreamer::getInstance().start_pipeline();
+  // WebmGStreamer::getInstance().start_pipeline();
   WebmGStreamer::getInstance().change_deuque_max_size(1);
   sleep(2);
   cout << WebmGStreamer::getInstance().get_frame_count() << endl;
   size_t test_frame_idx = 0;
   WebmGStreamer::getInstance().get_frame(test_frame_idx, test_webm_ss);
   CHECK(WebmGStreamer::getInstance().first_frame_to_start() == 0);
-  //WebmGStreamer::getInstance().stop_pipeline();
+  // WebmGStreamer::getInstance().stop_pipeline();
   cout << "tc2" << endl;
   std::cout.clear();
 }

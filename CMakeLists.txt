@@ -19,7 +19,7 @@ if(CODE_COVERAGE)
 endif()
 
 # === Find Boost ===
-find_package(Boost 1.74 REQUIRED COMPONENTS system thread)
+find_package(Boost 1.71 REQUIRED)
 
 # === Find pkg-config and gstreamer-1.0 ===
 find_package(PkgConfig REQUIRED)
