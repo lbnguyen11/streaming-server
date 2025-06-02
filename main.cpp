@@ -737,7 +737,7 @@ void do_accept(tcp::acceptor &acceptor, net::io_context &ioc)
                                                }
 
                                                cout << current_time_nano() << "t02 async_read: Received " << bytes_transferred << " bytes" << endl;
-
+                                               cout << current_time_nano() << "t02 async_read: req.target() is (" << req->target() << ")" << endl;
                                                // Check if the target is "/stream"
                                                if (req->target() == "/stream")
                                                {
@@ -751,7 +751,7 @@ void do_accept(tcp::acceptor &acceptor, net::io_context &ioc)
                                                }
                                                else
                                                {
-                                                 cout << current_time_nano() << "t03 Target is not /stream, closing socket" << endl;
+                                                 cout << current_time_nano() << "t03 Target is not valid, closing socket" << endl;
                                                  beast::error_code ec_close;
                                                  soc->shutdown(tcp::socket::shutdown_send, ec_close);
                                                }
@@ -776,7 +776,7 @@ int run_my_app()
     tcp::acceptor acceptor{ioc, {tcp::v4(), PORT}};
     do_accept(acceptor, ioc);
 
-    cout << current_time_nano() << "MJPEG stream at http://localhost:8080/stream" << endl;
+    cout << current_time_nano() << "Streaming server at http://localhost:8080/stream" << endl;
 
     // Capture SIGINT and SIGTERM to perform a clean shutdown
     net::signal_set signals(ioc, SIGINT, SIGTERM);
