@@ -27,4 +27,3 @@ BUILD_DIR=./build
 cd ${BUILD_DIR} || exit
 make coverage
 firefox --private coverage.html > /dev/null 2>&1 &
-# ./${RELEASE_BIN} "$@" | tee /home/lgb1hc/lbn11/31-media-server/log/tmp.log

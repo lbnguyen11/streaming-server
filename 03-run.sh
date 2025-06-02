@@ -27,4 +27,3 @@ BUILD_DIR=./build
 RELEASE_BIN=test_exe
 cd ${BUILD_DIR} || exit
 ./${RELEASE_BIN} "$@"
-# ./${RELEASE_BIN} "$@" | tee /home/lgb1hc/lbn11/31-media-server/log/tmp.log

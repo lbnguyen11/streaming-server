@@ -48,3 +48,4 @@ coverage/
 Thumbs.db
 desktop.ini
 *.token
+doxydoc/

@@ -100,7 +100,7 @@ struct SharedFrame
   }
 };
 
-class StreamingSession;
+class StreamingSessionIF;
 
 //////////
 class GStreamerIF
@@ -126,12 +126,13 @@ public:
   GStreamerIF(uint32_t max_szie = MAX_QUEUE_SIZE, std::string name = "GStreamerIF")
       : max_queue_size_(max_szie), name_(std::move(name)) {}
 
+  /**
+   * @virtual
+   */
   virtual ~GStreamerIF()
   {
     close_pipeline();
   }
-
-  // virtual GStreamerIF &instance() = 0;
 
   void start_pipeline()
   {
@@ -164,13 +165,19 @@ public:
     }
   }
 
-  void change_deuque_max_size(size_t new_max)
+  void change_max_size(size_t new_max)
   {
     max_queue_size_ = new_max;
   }
 
-  virtual std::shared_ptr<SharedFrame> get_frame(size_t &idx, StreamingSession &) = 0;
+  /**
+   * @virtual
+   */
+  virtual std::shared_ptr<SharedFrame> get_frame(size_t &idx, StreamingSessionIF &) = 0;
 
+  /**
+   * @virtual
+   */
   virtual size_t first_frame_to_start() const = 0;
 
   size_t get_frame_count() const
@@ -192,8 +199,14 @@ public:
   }
 
 private:
+  /**
+   * @virtual
+   */
   virtual void freeInstance() = 0;
 
+  /**
+   * @virtual
+   */
   virtual FILE *get_streaming_pipe() const = 0;
 
 protected:
@@ -248,8 +261,14 @@ protected:
   }
 
 private:
+  /**
+   * @virtual
+   */
   virtual void action_when_queue_full() = 0;
 
+  /**
+   * @virtual
+   */
   virtual void action_if_throw() = 0;
 
   void reset_frame_queue()
@@ -319,7 +338,7 @@ public:
     // return 0; // for testing if new MJPEGSession starts streaming from first item in the queue
   }
 
-  std::shared_ptr<SharedFrame> get_frame(size_t &idx, StreamingSession &) override
+  std::shared_ptr<SharedFrame> get_frame(size_t &idx, StreamingSessionIF &) override
   {
     std::unique_lock<std::mutex> lock(gst_queue_mutex_);
     size_t adjustIdx = idx;
@@ -423,7 +442,7 @@ public:
     return 0;
   }
 
-  std::shared_ptr<SharedFrame> get_frame(size_t &idx, StreamingSession &ss) override;
+  std::shared_ptr<SharedFrame> get_frame(size_t &idx, StreamingSessionIF &ss) override;
 
 private:
   FILE *get_streaming_pipe() const override
@@ -466,7 +485,7 @@ std::unique_ptr<WebmGStreamer> WebmGStreamer::webm_gst_instance_;
 std::mutex WebmGStreamer::webm_gst_singleton_mutex_;
 //////////
 
-class StreamingSession : public std::enable_shared_from_this<StreamingSession>
+class StreamingSessionIF : public std::enable_shared_from_this<StreamingSessionIF>
 {
 private:
   tcp::socket socket_;
@@ -477,7 +496,7 @@ private:
   std::string name_;
 
 public:
-  explicit StreamingSession(tcp::socket &&socket, GStreamerIF &gst, std::string name = "StreamingSession")
+  explicit StreamingSessionIF(tcp::socket &&socket, GStreamerIF &gst, std::string name = "StreamingSessionIF")
       : socket_(std::move(socket)),
         strand_(net::make_strand(static_cast<net::io_context &>(socket_.get_executor().context()).get_executor())), // Use io_context's executor
         frame_idx_(0),
@@ -486,7 +505,10 @@ public:
   {
   }
 
-  virtual ~StreamingSession() = default;
+  /**
+   * @virtual
+   */
+  virtual ~StreamingSessionIF() = default;
 
   GStreamerIF &get_gst() const
   {
@@ -498,6 +520,9 @@ public:
     frame_idx_ = idx;
   }
 
+  /**
+   * @virtual
+   */
   virtual void preupdate_when_get_frame(size_t &idx, GStreamerIF &gst) {}
 
   void start()
@@ -525,6 +550,9 @@ private:
   }
 
 private:
+  /**
+   * @virtual
+   */
   virtual std::unique_ptr<http::response<http::empty_body>> create_header() const = 0;
 
   void do_write()
@@ -583,7 +611,7 @@ private:
 };
 
 //////////----------
-std::shared_ptr<SharedFrame> WebmGStreamer::get_frame(size_t &idx, StreamingSession &ss)
+std::shared_ptr<SharedFrame> WebmGStreamer::get_frame(size_t &idx, StreamingSessionIF &ss)
 {
   {
     std::unique_lock<std::mutex> lock(gst_queue_mutex_);
@@ -602,10 +630,10 @@ std::shared_ptr<SharedFrame> WebmGStreamer::get_frame(size_t &idx, StreamingSess
 }
 //////////----------
 
-class MJPEGSessionImpl : public StreamingSession
+class MJPEGSessionImpl : public StreamingSessionIF
 {
 private:
-  using base_ = StreamingSession;
+  using base_ = StreamingSessionIF;
 
 public:
   explicit MJPEGSessionImpl(tcp::socket &&socket, std::string name = "MJPEGSessionImpl")
@@ -633,10 +661,10 @@ private:
   }
 };
 
-class WebmSessionImpl : public StreamingSession
+class WebmSessionImpl : public StreamingSessionIF
 {
 private:
-  using base_ = StreamingSession;
+  using base_ = StreamingSessionIF;
   std::uint64_t ss_rst_cnt{0};
 
 public:
@@ -984,7 +1012,7 @@ TEST_CASE("008 MJPEGGStreamer::first_frame_to_start() -> is not 0 when queue is 
   tcp::socket test_socket(test_ioc);
   MJPEGSessionImpl test_mjpeg_ss(std::move(test_socket));
   // MJPEGGStreamer::getInstance().start_pipeline();
-  MJPEGGStreamer::getInstance().change_deuque_max_size(4);
+  MJPEGGStreamer::getInstance().change_max_size(4);
   cout << "tc0" << endl;
   sleep(1);
   cout << "tc0a" << endl;
@@ -1006,7 +1034,7 @@ TEST_CASE("009 WebmGStreamer::first_frame_to_start() -> is always 0")
   tcp::socket test_socket(test_ioc);
   WebmSessionImpl test_webm_ss(std::move(test_socket));
   // WebmGStreamer::getInstance().start_pipeline();
-  WebmGStreamer::getInstance().change_deuque_max_size(1);
+  WebmGStreamer::getInstance().change_max_size(1);
   sleep(2);
   cout << WebmGStreamer::getInstance().get_frame_count() << endl;
   size_t test_frame_idx = 0;
