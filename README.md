@@ -62,7 +62,7 @@ firefox http://localhost:8080/stream01
 
 ## Demo
 
-streaming-server.webm
+[streaming-server.webm](https://github.com/lbnguyen11/streaming-server/blob/master/streaming-server.webm)
 
 ## Design overview
 
@@ -85,5 +85,5 @@ streaming-server.webm
 ## Further improvements
 
 * Use WebRTC streaming for better latency, real-time communication
-* Adapt lock-free queue for better parallelisim
+* Adapt lock-free queue for better parallelism
 * Extend for handling of Wayland desktop capture using pipewiresrc
